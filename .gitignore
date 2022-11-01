@@ -2,3 +2,4 @@
 .vs
 ExtractDx11MESH/bin
 ExtractDx11MESH/obj
+ExtractDx11MESH/Properties/launchSettings.json

@@ -150,7 +150,7 @@ public class ExtractDx11MESH
 		{
 			iPos += 4;
 			GSC2EB gSC2EB = new GSC2EB(fileData, iPos);
-			iPos = gSC2EB.Read(ref referencecounter);
+			iPos = gSC2EB.Read(ref referencecounter, directoryname, filenamewithoutextension);
 		}
 	}
 
@@ -203,11 +203,21 @@ public class ExtractDx11MESH
 			int num = 0;
 			bool flag = true;
 			{
+				ColoredConsole.WriteLine("Exporting Collada file...");
+
+				ColladaExporter colladaExporter = new ColladaExporter();
+				string path = directoryname + "\\" + filenamewithoutextension + ".dae";
+				colladaExporter.StartFile(path);
+
 				foreach (Part part in mesh.Parts)
 				{
 					flag = false;
-					CreateObjFile(mesh, part, num++);
+					num++;
+					colladaExporter.AddMesh(mesh, part, num);
 				}
+
+				colladaExporter.EndFile(mesh.Parts.Count);
+				
 				return;
 			}
 		}
@@ -340,199 +350,6 @@ public class ExtractDx11MESH
 		else if (vertexList2 != null && vertexList2.Vertices[0].ColorSet0 != null)
 		{
 			list = vertexList2.Vertices;
-		}
-	}
-
-	public static void CreateObjFile(MESH04 mesh, Part part, int partnumber)
-	{
-		bool flag = false;
-		bool flag2 = false;
-		List<Vertex> list = null;
-		VertexList vertexList = mesh.Vertexlistsdictionary[part.VertexListReferences1[0]];
-		VertexList vertexList2 = null;
-		if (part.VertexListReferences1.Count > 1)
-		{
-			vertexList2 = mesh.Vertexlistsdictionary[part.VertexListReferences1[1]];
-		}
-		List<int> list2 = null;
-		try
-		{
-			list2 = mesh.Indexlistsdictionary[part.IndexListReference1];
-		}
-		catch (Exception ex)
-		{
-			ColoredConsole.WriteError("{0} @ Part {1:x4} Index {2:x4}", ex.Message, partnumber, part.IndexListReference1);
-		}
-		string path = directoryname + "\\" + filenamewithoutextension + $"{partnumber:0000}" + ".obj";
-		StreamWriter streamWriter = new StreamWriter(path);
-		streamWriter.WriteLine("# " + filenamewithoutextension);
-		if (vertexList.Vertices[0].Position != null)
-		{
-			for (int i = part.OffsetVertices; i < part.OffsetVertices + part.NumberVertices; i++)
-			{
-				Vector3 position = vertexList.Vertices[i].Position;
-				streamWriter.WriteLine($"v {position.X:0.000000} {position.Y:0.000000} {position.Z:0.000000} ".Replace(',', '.'));
-			}
-		}
-		else if (vertexList2 != null && vertexList2.Vertices[0].Position != null)
-		{
-			for (int i = part.OffsetVertices; i < part.OffsetVertices + part.NumberVertices; i++)
-			{
-				Vector3 position = vertexList2.Vertices[i].Position;
-				streamWriter.WriteLine($"v {position.X:0.000000} {position.Y:0.000000} {position.Z:0.000000} ".Replace(',', '.'));
-			}
-		}
-		if (vertexList.Vertices[0].UVSet0 != null)
-		{
-			flag2 = true;
-			for (int i = part.OffsetVertices; i < part.OffsetVertices + part.NumberVertices; i++)
-			{
-				Vector2 uVSet = vertexList.Vertices[i].UVSet0;
-				streamWriter.WriteLine($"vt {uVSet.X:0.000000} {uVSet.Y:0.000000} ".Replace(',', '.'));
-			}
-		}
-		else if (vertexList2 != null && vertexList2.Vertices[0].UVSet0 != null)
-		{
-			flag2 = true;
-			for (int i = part.OffsetVertices; i < part.OffsetVertices + part.NumberVertices; i++)
-			{
-				Vector2 uVSet = vertexList2.Vertices[i].UVSet0;
-				streamWriter.WriteLine($"vt {uVSet.X:0.000000} {uVSet.Y:0.000000} ".Replace(',', '.'));
-			}
-		}
-		if (vertexList.Vertices[0].Normal != null)
-		{
-			flag = true;
-			for (int i = part.OffsetVertices; i < part.OffsetVertices + part.NumberVertices; i++)
-			{
-				Vector3 normal = vertexList.Vertices[i].Normal;
-				streamWriter.WriteLine($"vn {normal.X:0.000000} {normal.Y:0.000000} {normal.Z:0.000000} ".Replace(',', '.'));
-			}
-		}
-		else if (vertexList2 != null && vertexList2.Vertices[0].Normal != null)
-		{
-			flag = true;
-			for (int i = part.OffsetVertices; i < part.OffsetVertices + part.NumberVertices; i++)
-			{
-				Vector3 normal = vertexList2.Vertices[i].Normal;
-				streamWriter.WriteLine($"vn {normal.X:0.000000} {normal.Y:0.000000} {normal.Z:0.000000} ".Replace(',', '.'));
-			}
-		}
-		if (vertexList.Vertices[0].ColorSet0 != null)
-		{
-			list = vertexList.Vertices;
-		}
-		else if (vertexList2 != null && vertexList2.Vertices[0].ColorSet0 != null)
-		{
-			list = vertexList2.Vertices;
-		}
-		string format = "f {0} {1} {2}";
-		if (flag2)
-		{
-			format = ((!flag) ? "f {0}/{0} {1}/{1} {2}/{2}" : "f {0}/{0}/{0} {1}/{1}/{1} {2}/{2}/{2}");
-		}
-		else if (flag)
-		{
-			format = "f {0}//{0} {1}//{1} {2}//{2}";
-		}
-		streamWriter.WriteLine("mtllib " + filenamewithoutextension + $"{partnumber:0000}" + ".mtl");
-		string path2 = directoryname + "\\" + filenamewithoutextension + $"{partnumber:0000}" + ".mtl";
-		StreamWriter streamWriter2 = new StreamWriter(path2);
-		string text = "";
-		List<string> list3 = new List<string>();
-		for (int i = part.OffsetIndices; i < part.OffsetIndices + part.NumberIndices; i += 3)
-		{
-			bool flag3 = 0 == 0;
-			streamWriter.WriteLine(string.Format(format, list2[i] - part.NumberVertices, list2[i + 1] - part.NumberVertices, list2[i + 2] - part.NumberVertices));
-		}
-		streamWriter2.Close();
-		streamWriter.Close();
-	}
-
-	private void WriteIntoObjFile(Part part, StreamWriter streamwriter)
-	{
-		bool flag = false;
-		bool flag2 = false;
-		List<Vertex> list = null;
-		VertexList vertexList = mesh.Vertexlistsdictionary[part.VertexListReferences1[0]];
-		VertexList vertexList2 = null;
-		if (part.VertexListReferences1.Count > 1)
-		{
-			vertexList2 = mesh.Vertexlistsdictionary[part.VertexListReferences1[1]];
-		}
-		List<int> list2 = mesh.Indexlistsdictionary[part.IndexListReference1];
-		if (vertexList.Vertices[0].Position != null)
-		{
-			for (int i = part.OffsetVertices; i < part.OffsetVertices + part.NumberVertices; i++)
-			{
-				Vector3 position = vertexList.Vertices[i].Position;
-				streamwriter.WriteLine($"v {position.X:0.000000} {position.Y:0.000000} {position.Z:0.000000} ".Replace(',', '.'));
-			}
-		}
-		else if (vertexList2 != null && vertexList2.Vertices[0].Position != null)
-		{
-			for (int i = part.OffsetVertices; i < part.OffsetVertices + part.NumberVertices; i++)
-			{
-				Vector3 position = vertexList2.Vertices[i].Position;
-				streamwriter.WriteLine($"v {position.X:0.000000} {position.Y:0.000000} {position.Z:0.000000} ".Replace(',', '.'));
-			}
-		}
-		if (vertexList.Vertices[0].UVSet0 != null)
-		{
-			flag2 = true;
-			for (int i = part.OffsetVertices; i < part.OffsetVertices + part.NumberVertices; i++)
-			{
-				Vector2 uVSet = vertexList.Vertices[i].UVSet0;
-				streamwriter.WriteLine($"vt {uVSet.X:0.000000} {uVSet.Y:0.000000} ".Replace(',', '.'));
-			}
-		}
-		else if (vertexList2 != null && vertexList2.Vertices[0].UVSet0 != null)
-		{
-			flag2 = true;
-			for (int i = part.OffsetVertices; i < part.OffsetVertices + part.NumberVertices; i++)
-			{
-				Vector2 uVSet = vertexList2.Vertices[i].UVSet0;
-				streamwriter.WriteLine($"vt {uVSet.X:0.000000} {uVSet.Y:0.000000} ".Replace(',', '.'));
-			}
-		}
-		if (vertexList.Vertices[0].Normal != null)
-		{
-			flag = true;
-			for (int i = part.OffsetVertices; i < part.OffsetVertices + part.NumberVertices; i++)
-			{
-				Vector3 normal = vertexList.Vertices[i].Normal;
-				streamwriter.WriteLine($"vn {normal.X:0.000000} {normal.Y:0.000000} {normal.Z:0.000000} ".Replace(',', '.'));
-			}
-		}
-		else if (vertexList2 != null && vertexList2.Vertices[0].Normal != null)
-		{
-			flag = true;
-			for (int i = part.OffsetVertices; i < part.OffsetVertices + part.NumberVertices; i++)
-			{
-				Vector3 normal = vertexList2.Vertices[i].Normal;
-				streamwriter.WriteLine($"vn {normal.X:0.000000} {normal.Y:0.000000} {normal.Z:0.000000} ".Replace(',', '.'));
-			}
-		}
-		if (vertexList.Vertices[0].ColorSet0 != null)
-		{
-			list = vertexList.Vertices;
-		}
-		else if (vertexList2 != null && vertexList2.Vertices[0].ColorSet0 != null)
-		{
-			list = vertexList2.Vertices;
-		}
-		string format = "f {0} {1} {2}";
-		if (flag2)
-		{
-			format = ((!flag) ? "f {0}/{0} {1}/{1} {2}/{2}" : "f {0}/{0}/{0} {1}/{1}/{1} {2}/{2}/{2}");
-		}
-		else if (flag)
-		{
-			format = "f {0}//{0} {1}//{1} {2}//{2}";
-		}
-		for (int i = part.OffsetIndices; i < part.OffsetIndices + part.NumberIndices; i += 3)
-		{
-			streamwriter.WriteLine(string.Format(format, list2[i] - part.NumberVertices, list2[i + 1] - part.NumberVertices, list2[i + 2] - part.NumberVertices));
 		}
 	}
 }

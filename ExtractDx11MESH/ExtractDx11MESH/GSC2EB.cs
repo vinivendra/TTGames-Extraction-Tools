@@ -21,7 +21,7 @@ public class GSC2EB
 		ColoredConsole.WriteLineInfo("{0:x8} GSC2 Version 0x{1:x2}", iPos, version);
 	}
 
-	public int Read(ref int referencecounter)
+	public int Read(ref int referencecounter, string directoryName, string filenameWithoutExtension)
 	{
 		int num = BigEndianBitConverter.ToInt32(fileData, iPos);
 		ColoredConsole.WriteLine("{0:x8}   Number of resources: 0x{1:x8}", iPos, num);
@@ -34,16 +34,30 @@ public class GSC2EB
 			ColoredConsole.WriteLine("{0:x8}   {1}", iPos, readString(numberofchars));
 			numberofchars = BigEndianBitConverter.ToInt16(fileData, iPos);
 			iPos += 2;
-			ColoredConsole.WriteLine("{0:x8}     {1}", iPos, readString(numberofchars));
+			ColoredConsole.WriteLine("{0:x8}	 {1}", iPos, readString(numberofchars));
 		}
 		iPos += 4;
-		MESH04 mESH = new MESHC9(fileData, iPos);
-		mESH.Read(ref referencecounter);
-		int num2 = 0;
-		foreach (Part part in mESH.Parts)
+
+		// Create the mesh
+		MESH04 mesh = new MESHC9(fileData, iPos);
+		mesh.Read(ref referencecounter);
+
+		// Export the mesh to a file
+		ColoredConsole.WriteLine("Exporting Collada file...");
+
+		ColladaExporter colladaExporter = new ColladaExporter();
+		string path = directoryName + "\\" + filenameWithoutExtension + ".dae";
+		colladaExporter.StartFile(path);
+
+		foreach (Part part in mesh.Parts)
 		{
-			ExtractDx11MESH.CreateObjFile(mESH, part, num2++);
+			num++;
+			colladaExporter.AddMesh(mesh, part, num);
 		}
+
+		colladaExporter.EndFile(mesh.Parts.Count);
+
+		// Return the new reading position in the input file
 		return iPos;
 	}
 

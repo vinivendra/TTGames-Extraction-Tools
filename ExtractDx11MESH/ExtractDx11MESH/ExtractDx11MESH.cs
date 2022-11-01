@@ -87,8 +87,31 @@ public class ExtractDx11MESH
 		{
 			readNU20();
 			readMESH();
+			readHGOL();
 		}
 		ColoredConsole.WriteLineInfo(fullPath);
+	}
+
+	private void readHGOL()
+	{
+		// TODO: Support multiple armatures
+		// TODO: Support GHG's without armatures
+		while (fileData[iPos] != 76 || fileData[iPos + 1] != 79 || fileData[iPos + 2] != 71 || fileData[iPos + 3] != 72)
+		{
+			iPos++;
+		}
+		if (fileData[iPos] == 76 || fileData[iPos + 1] == 79 || fileData[iPos + 2] == 71 || fileData[iPos + 3] == 72)
+		{
+			// Skip the HGOL
+			iPos += 4;
+
+			HGOL hgol = new HGOL(fileData, iPos);
+			iPos = hgol.Read();
+		}
+		else
+		{
+			ColoredConsole.WriteLine("No rig (HGOL)");
+		}
 	}
 
 	private void readNU20()

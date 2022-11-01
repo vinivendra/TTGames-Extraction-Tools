@@ -11,7 +11,7 @@ public class HGOL
 
 	protected int iPos;
 
-	protected List<Bone> Bones = new List<Bone>();
+	public List<Bone> Bones = new List<Bone>();
 	public HGOL(byte[] fileData, int iPos)
 	{
 		this.fileData = fileData;

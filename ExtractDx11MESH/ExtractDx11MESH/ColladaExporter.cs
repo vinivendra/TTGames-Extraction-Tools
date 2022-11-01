@@ -11,12 +11,37 @@ using System.Text;
 namespace ExtractDx11MESH;
 public class ColladaExporter
 {
-	StreamWriter streamWriter;
+	private StreamWriter streamWriter;
 
-	public void StartFile(string path)
+	public MESH04 mesh;
+	public List<HGOL> hgols;
+
+	public void WriteFile(string path)
 	{
 		streamWriter = new StreamWriter(path);
+		OpenFileAndStartGeometry();
 
+		ColoredConsole.WriteLine($"    Writing information on {mesh.Parts.Count} meshes...");
+		int num = 0;
+		foreach (Part part in mesh.Parts)
+		{
+			num++;
+			AddMeshToGeometry(mesh, part, num);
+		}
+		
+		EndGeometryAndStartScene();
+
+		ColoredConsole.WriteLine($"    Placing {mesh.Parts.Count} meshes on the scene...");
+		AddMeshesToScene();
+
+		ColoredConsole.WriteLine($"    Placing {hgols.Count} armatures on the scene...");
+		AddArmaturesToScene();
+
+		EndSceneAndCloseFile();
+	}
+
+	private void OpenFileAndStartGeometry()
+	{
 		string fileContents = @"<?xml version=""1.0"" encoding=""utf-8""?>
 <COLLADA xmlns=""http://www.collada.org/2005/11/COLLADASchema"" version=""1.4.1"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"">
   <asset>
@@ -57,7 +82,7 @@ public class ColladaExporter
 		streamWriter.Write(fileContents);
 	}
 
-	public void EndFile(int numberOfMeshes)
+	private void EndGeometryAndStartScene()
 	{
 		string fileContents = $@"
   </library_geometries>
@@ -65,12 +90,64 @@ public class ColladaExporter
 	<visual_scene id=""Scene"" name=""Scene"">";
 
 		streamWriter.Write(fileContents);
+	}
 
+	private void EndSceneAndCloseFile() {
+		string fileContents = $@"
+	</visual_scene>
+  </library_visual_scenes>
+  <scene>
+	<instance_visual_scene url=""#Scene""/>
+  </scene>
+</COLLADA>";
+
+		streamWriter.Write(fileContents);
+
+		streamWriter.Close();
+	}
+
+	private void AddArmaturesToScene()
+	{
+		int i = 0;
+		foreach (HGOL hgol in hgols)
+		{
+			i++;
+			ColoredConsole.WriteLine($"        Armature #{i}...");
+			// TODO: start HGOL
+
+			// Bones without parent have parent = -1. All other bones are added recursively as children.
+			AddBonesWithParent(hgol, -1, "");
+			
+			// TODO: end HGOL
+		}
+	}
+	private void AddBonesWithParent(HGOL hgol, int parent, string indentation)
+	{
+		// TODO: print start
+
+		// Print children
+		for (int i = 0; i < hgol.Bones.Count; i++)
+		{
+			Bone bone = hgol.Bones[i];
+			if (bone.parent == parent)
+			{
+				ColoredConsole.WriteLine($"            {indentation}Bone #{i}, parent {bone.parent}");
+				AddBonesWithParent(hgol, i, indentation + "  ");
+			}
+		}
+
+		// TODO: Print end
+	}
+
+	private void AddMeshesToScene()
+	{
+
+		int numberOfMeshes = mesh.Parts.Count;
 
 		for (int i = 1; i <= numberOfMeshes; i += 1)
 		{
 			string meshNumber = $"{i:0000}";
-			fileContents = $@"
+			string fileContents = $@"
 	  <node id=""Object_{meshNumber}"" name=""Object.{meshNumber}"" type=""NODE"">
 		<matrix sid=""transform"">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix>
 		<instance_geometry url=""#Object_{meshNumber}-mesh"" name=""Object.{meshNumber}"">
@@ -85,21 +162,9 @@ public class ColladaExporter
 	  </node>";
 			streamWriter.Write(fileContents);
 		}
-		
-		fileContents = $@"
-	</visual_scene>
-  </library_visual_scenes>
-  <scene>
-	<instance_visual_scene url=""#Scene""/>
-  </scene>
-</COLLADA>";
-
-		streamWriter.Write(fileContents);
-
-		streamWriter.Close();
 	}
 
-	public void AddMesh(MESH04 mesh, Part part, int partnumber)
+	private void AddMeshToGeometry(MESH04 mesh, Part part, int partnumber)
 	{
 		VertexList vertexList = mesh.Vertexlistsdictionary[part.VertexListReferences1[0]];
 		VertexList vertexList2 = null;
@@ -151,7 +216,7 @@ public class ColladaExporter
 		AddFaces(meshNumber, part, list2);
 	}
 
-	public void AddFaces(string meshNumber, Part part, List<int> indices)
+	private void AddFaces(string meshNumber, Part part, List<int> indices)
 	{
 		int numberOfFaces = part.NumberIndices / 3;
 
@@ -186,7 +251,7 @@ public class ColladaExporter
 		streamWriter.Write(fileContents);
 	}
 
-	public void AddNormals(string meshNumber, Part part, VertexList vertexList)
+	private void AddNormals(string meshNumber, Part part, VertexList vertexList)
 	{
 		string fileContents = @$"
 		<source id=""Object_{meshNumber}-mesh-normals"">
@@ -212,7 +277,7 @@ public class ColladaExporter
 		streamWriter.Write(fileContents);
 	}
 
-	public void AddUVs(string meshNumber, Part part, VertexList vertexList)
+	private void AddUVs(string meshNumber, Part part, VertexList vertexList)
 	{
 		string fileContents = @$"
 		<source id=""Object_{meshNumber}-mesh-map-0"">
@@ -238,7 +303,7 @@ public class ColladaExporter
 	}
 
 
-	public void AddVertices(string meshNumber, Part part, VertexList vertexList)
+	private void AddVertices(string meshNumber, Part part, VertexList vertexList)
 	{
 		string fileContents = @$"
 	<geometry id=""Object_{meshNumber}-mesh"" name=""Object.{meshNumber}"">

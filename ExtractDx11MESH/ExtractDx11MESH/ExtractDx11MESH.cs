@@ -90,22 +90,15 @@ public class ExtractDx11MESH
 			readNU20();
 			readMESH();
 			readHGOLs();
-
-			ColoredConsole.WriteLine("Exporting Collada file...");
-
-			ColladaExporter colladaExporter = new ColladaExporter();
-			string path = directoryname + "\\" + filenamewithoutextension + ".dae";
-			colladaExporter.StartFile(path);
-
-			int num = 0;
-			foreach (Part part in mesh.Parts)
-			{
-				num++;
-				colladaExporter.AddMesh(mesh, part, num);
-			}
-
-			colladaExporter.EndFile(mesh.Parts.Count);
 		}
+		string path = directoryname + "\\" + filenamewithoutextension + ".dae";
+
+		ColoredConsole.WriteLineInfo($"Exporting Collada file {path}...");
+		ColladaExporter colladaExporter = new ColladaExporter();
+		colladaExporter.mesh = mesh;
+		colladaExporter.hgols = hgols;
+		colladaExporter.WriteFile(path);
+
 		ColoredConsole.WriteLineInfo(fullPath);
 	}
 	private void readHGOLs()
@@ -231,6 +224,7 @@ public class ExtractDx11MESH
 			iPos += 4;
 			GSC2EB gSC2EB = new GSC2EB(fileData, iPos);
 			iPos = gSC2EB.Read(ref referencecounter, directoryname, filenamewithoutextension);
+			this.mesh = gSC2EB.mesh;
 		}
 	}
 

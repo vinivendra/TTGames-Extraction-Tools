@@ -29,7 +29,6 @@ public class HGOL
 
 		for (int i = 0; i < numberOfBones; i++)
 		{
-			ColoredConsole.WriteLine("{0:x8}   Bone {1:D}", iPos, i);
 			Bones.Add(ReadBone());
 		}
 		return iPos;

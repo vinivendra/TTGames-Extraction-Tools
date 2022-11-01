@@ -87,31 +87,72 @@ public class ExtractDx11MESH
 		{
 			readNU20();
 			readMESH();
-			readHGOL();
+			readHGOLs();
 		}
 		ColoredConsole.WriteLineInfo(fullPath);
 	}
-
-	private void readHGOL()
+	private void readHGOLs()
 	{
-		// TODO: Support multiple armatures
-		// TODO: Support GHG's without armatures
-		while (fileData[iPos] != 76 || fileData[iPos + 1] != 79 || fileData[iPos + 2] != 71 || fileData[iPos + 3] != 72)
+		bool hasReadAnHGOL = false;
+		while (true)
 		{
-			iPos++;
+			bool success = readHGOL();
+			if (!success)
+			{
+				break;
+			}
+			else
+			{
+				hasReadAnHGOL = true;
+			}
 		}
-		if (fileData[iPos] == 76 || fileData[iPos + 1] == 79 || fileData[iPos + 2] == 71 || fileData[iPos + 3] == 72)
-		{
-			// Skip the HGOL
-			iPos += 4;
 
-			HGOL hgol = new HGOL(fileData, iPos);
-			iPos = hgol.Read();
-		}
-		else
+		if (!hasReadAnHGOL)
 		{
-			ColoredConsole.WriteLine("No rig (HGOL)");
+			ColoredConsole.WriteLine("No armature (HGOL)");
 		}
+	}
+
+	/// <summary>
+	///  Reads an HGOL section as an armature and its bones.
+	///  If no HGOL section is detected, doesn't change the iPos.
+	/// </summary>
+	/// <returns>
+	///  Returns true if an HGOL section was read, false otherwise.
+	/// </returns>
+	private bool readHGOL()
+	{
+		int localIPos = iPos;
+
+		// Read the file until we find an "HGOL" string
+		while (localIPos + 3 < fileData.Length &&
+			(fileData[localIPos] != 76 ||
+			fileData[localIPos + 1] != 79 ||
+			fileData[localIPos + 2] != 71 ||
+			fileData[localIPos + 3] != 72))
+		{
+			localIPos++;
+		}
+		// If the file ended or if no string was found
+		if (localIPos + 3 >= fileData.Length ||
+			fileData[localIPos] != 76 ||
+			fileData[localIPos + 1] != 79 ||
+			fileData[localIPos + 2] != 71 ||
+			fileData[localIPos + 3] != 72)
+		{
+			return false;
+		}
+
+		// If we found a string at `localIPos`, move `iPos` to this string and start reading the HGOL
+		iPos = localIPos;
+
+		// Skip the "HGOL" string
+		iPos += 4;
+
+		HGOL hgol = new HGOL(fileData, iPos);
+		iPos = hgol.Read();
+
+		return true;
 	}
 
 	private void readNU20()

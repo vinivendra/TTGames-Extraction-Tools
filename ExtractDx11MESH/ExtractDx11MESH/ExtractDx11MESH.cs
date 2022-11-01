@@ -36,6 +36,8 @@ public class ExtractDx11MESH
 
 	private IVL501 ivl5;
 
+	private List<HGOL> hgols = new List<HGOL>();
+
 	private bool extractMesh = true;
 
 	public void ParseArgs(string[] args)
@@ -88,26 +90,40 @@ public class ExtractDx11MESH
 			readNU20();
 			readMESH();
 			readHGOLs();
+
+			ColoredConsole.WriteLine("Exporting Collada file...");
+
+			ColladaExporter colladaExporter = new ColladaExporter();
+			string path = directoryname + "\\" + filenamewithoutextension + ".dae";
+			colladaExporter.StartFile(path);
+
+			int num = 0;
+			foreach (Part part in mesh.Parts)
+			{
+				num++;
+				colladaExporter.AddMesh(mesh, part, num);
+			}
+
+			colladaExporter.EndFile(mesh.Parts.Count);
 		}
 		ColoredConsole.WriteLineInfo(fullPath);
 	}
 	private void readHGOLs()
 	{
-		bool hasReadAnHGOL = false;
 		while (true)
 		{
-			bool success = readHGOL();
-			if (!success)
+			HGOL hgol = ReadHGOL();
+			if (hgol != null)
 			{
-				break;
+				this.hgols.Add(hgol);
 			}
 			else
 			{
-				hasReadAnHGOL = true;
+				break;
 			}
 		}
 
-		if (!hasReadAnHGOL)
+		if (this.hgols.Count == 0)
 		{
 			ColoredConsole.WriteLine("No armature (HGOL)");
 		}
@@ -118,9 +134,9 @@ public class ExtractDx11MESH
 	///  If no HGOL section is detected, doesn't change the iPos.
 	/// </summary>
 	/// <returns>
-	///  Returns true if an HGOL section was read, false otherwise.
+	///  Returns the created HGOL if an HGOL section was read, null otherwise.
 	/// </returns>
-	private bool readHGOL()
+	private HGOL ReadHGOL()
 	{
 		int localIPos = iPos;
 
@@ -140,7 +156,7 @@ public class ExtractDx11MESH
 			fileData[localIPos + 2] != 71 ||
 			fileData[localIPos + 3] != 72)
 		{
-			return false;
+			return null;
 		}
 
 		// If we found a string at `localIPos`, move `iPos` to this string and start reading the HGOL
@@ -152,7 +168,7 @@ public class ExtractDx11MESH
 		HGOL hgol = new HGOL(fileData, iPos);
 		iPos = hgol.Read();
 
-		return true;
+		return hgol;
 	}
 
 	private void readNU20()
@@ -263,27 +279,9 @@ public class ExtractDx11MESH
 			default:
 				throw new NotSupportedException($"MESH Version {BigEndianBitConverter.ToInt32(fileData, iPos):x2}");
 			}
+
 			iPos = mesh.Read(ref referencecounter);
-			int num = 0;
-			bool flag = true;
-			{
-				ColoredConsole.WriteLine("Exporting Collada file...");
-
-				ColladaExporter colladaExporter = new ColladaExporter();
-				string path = directoryname + "\\" + filenamewithoutextension + ".dae";
-				colladaExporter.StartFile(path);
-
-				foreach (Part part in mesh.Parts)
-				{
-					flag = false;
-					num++;
-					colladaExporter.AddMesh(mesh, part, num);
-				}
-
-				colladaExporter.EndFile(mesh.Parts.Count);
-				
-				return;
-			}
+			return;
 		}
 		ColoredConsole.WriteLine("No MESH");
 	}

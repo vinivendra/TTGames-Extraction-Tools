@@ -3,18 +3,18 @@
     <AssemblyName>ExtractDx11MESH</AssemblyName>
     <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net20</TargetFramework>
+    <TargetFramework>net35</TargetFramework>
   </PropertyGroup>
   <PropertyGroup>
     <LangVersion>Preview</LangVersion>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
+  <PropertyGroup />
+  <ItemGroup />
   <ItemGroup>
     <Reference Include="ExtractHelper">
-      <HintPath>ExtractHelper.dll</HintPath>
+      <HintPath>..\ExtractDx11Mesh (2021-4-17)\ExtractHelper.dll</HintPath>
     </Reference>
-    <Reference Include="System.Core">
-      <HintPath>C:\Windows\assembly\GAC_MSIL\System.Core\3.5.0.0__b77a5c561934e089\System.Core.dll</HintPath>
-    </Reference>
+    <Reference Include="System.Core" />
   </ItemGroup>
 </Project>

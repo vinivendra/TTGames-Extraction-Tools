@@ -1,11 +1,10 @@
 using System.Collections.Generic;
 
-namespace ExtractDx11MESH
-{
-	public class VertexList
-	{
-		public List<VertexDefinition> VertexDefinitions = new List<VertexDefinition>();
+namespace ExtractDx11MESH;
 
-		public List<Vertex> Vertices = new List<Vertex>();
-	}
+public class VertexList
+{
+	public List<VertexDefinition> VertexDefinitions = new List<VertexDefinition>();
+
+	public List<Vertex> Vertices = new List<Vertex>();
 }

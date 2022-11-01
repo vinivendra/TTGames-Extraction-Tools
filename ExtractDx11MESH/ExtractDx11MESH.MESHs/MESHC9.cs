@@ -3,24 +3,11 @@ using ExtractHelper;
 
 namespace ExtractDx11MESH.MESHs;
 
-public class MESHC8 : MESHAF
+public class MESHC9 : MESHC8
 {
-	public MESHC8(byte[] fileData, int iPos)
+	public MESHC9(byte[] fileData, int iPos)
 		: base(fileData, iPos)
 	{
-	}
-
-	public override int Read(ref int referencecounter)
-	{
-		int num = BigEndianBitConverter.ToInt32(fileData, iPos);
-		ColoredConsole.WriteLine("{0:x8}   Number of Parts: 0x{1:x8}", iPos, num);
-		iPos += 4;
-		for (int i = 0; i < num; i++)
-		{
-			ColoredConsole.WriteLine("{0:x8}   Part 0x{1:x8}", iPos, i);
-			Parts.Add(ReadPart(ref referencecounter));
-		}
-		return iPos;
 	}
 
 	protected override Part ReadPart(ref int referencecounter)
@@ -86,6 +73,7 @@ public class MESHC8 : MESHAF
 			iPos += 4;
 		}
 		iPos += 36;
+		iPos += 4;
 		referencecounter++;
 		referencecounter++;
 		return part;

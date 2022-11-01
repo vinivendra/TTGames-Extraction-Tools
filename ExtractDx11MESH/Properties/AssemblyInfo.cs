@@ -13,7 +13,4 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 [assembly: Guid("97c12ad1-b0c5-485e-b995-cdd914847dfe")]
 [assembly: AssemblyFileVersion("1.0.*")]
-[assembly: Debuggable(DebuggableAttribute.DebuggingModes.Default | DebuggableAttribute.DebuggingModes.DisableOptimizations | DebuggableAttribute.DebuggingModes.IgnoreSymbolStoreSequencePoints | DebuggableAttribute.DebuggingModes.EnableEditAndContinue)]
-[assembly: CompilationRelaxations(8)]
-[assembly: RuntimeCompatibility(WrapNonExceptionThrows = true)]
-[assembly: AssemblyVersion("1.0.6870.38167")]
+[assembly: AssemblyVersion("1.0.8142.30912")]

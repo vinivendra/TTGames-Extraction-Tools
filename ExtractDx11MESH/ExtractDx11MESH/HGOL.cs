@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing.Drawing2D;
 using ExtractHelper;
 using ExtractHelper.VariableTypes;
 
@@ -31,7 +32,39 @@ public class HGOL
 		{
 			Bones.Add(ReadBone());
 		}
+
+		iPos += 6; // Skip 2 bytes + an Int32 which is the number of bones again
+
+		foreach (Bone bone in Bones)
+		{
+			bone.transform2 = ReadTransform();
+		}
+
+		iPos += 8; // Skip 4 bytes + an Int32 which is the number of bones again
+
+		foreach (Bone bone in Bones)
+		{
+			bone.transform3 = ReadTransform();
+		}
+
 		return iPos;
+	}
+
+	protected virtual Matrix4x4 ReadTransform()
+	{
+		Matrix4x4 matrix = new Matrix4x4();
+
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				float readValue = BigEndianBitConverter.ToSingle(fileData, iPos);
+				matrix.m[i][j] = readValue;
+				iPos += 4; // Skip the single
+			}
+		}
+
+		return matrix;
 	}
 
 	protected virtual Bone ReadBone()
@@ -41,20 +74,19 @@ public class HGOL
 		iPos += name.Length + 1; // Skip the string and the null terminator
 		bone.name = name;
 
-		List<List<float>> matrix = new List<List<float>>();
+		Matrix4x4 matrix = new Matrix4x4();
 
 		for (int i = 0; i < 4; i++)
 		{
-			matrix.Add(new List<float>());
 			for (int j = 0; j < 4; j++)
 			{
 				float readValue = BigEndianBitConverter.ToSingle(fileData, iPos);
-				matrix[i].Add(readValue);
+				matrix.m[i][j] = readValue;
 				iPos += 4; // Skip the single
 			}
 		}
 
-		bone.transform = matrix;
+		bone.transform1 = matrix;
 
 		iPos += 12; // Skip unknown 12 bytes
 

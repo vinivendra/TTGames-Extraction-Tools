@@ -108,35 +108,117 @@ public class ColladaExporter
 
 	private void AddArmaturesToScene()
 	{
-		int i = 0;
-		foreach (HGOL hgol in hgols)
+		List<List<float>> identity = new List<List<float>>();
+		for (int i = 0; i < 4; i++)
 		{
-			i++;
-			ColoredConsole.WriteLine($"        Armature #{i}...");
-			// TODO: start HGOL
-
-			// Bones without parent have parent = -1. All other bones are added recursively as children.
-			AddBonesWithParent(hgol, -1, "");
-			
-			// TODO: end HGOL
-		}
-	}
-	private void AddBonesWithParent(HGOL hgol, int parent, string indentation)
-	{
-		// TODO: print start
-
-		// Print children
-		for (int i = 0; i < hgol.Bones.Count; i++)
-		{
-			Bone bone = hgol.Bones[i];
-			if (bone.parent == parent)
+			identity.Add(new List<float>());
+			for (int j = 0; j < 4; j++)
 			{
-				ColoredConsole.WriteLine($"            {indentation}Bone #{i}, parent {bone.parent}");
-				AddBonesWithParent(hgol, i, indentation + "  ");
+				identity[i].Add((i == j) ? 1 : 0);
 			}
 		}
 
-		// TODO: Print end
+		int index = 0;
+		foreach (HGOL hgol in hgols)
+		{
+			index++;
+			ColoredConsole.WriteLine($"        Armature #{index}...");
+
+			string fileContents = $@"
+      <node id=""Armature_{index}"" name=""Armature_{index}"" type=""NODE"">
+        <matrix sid=""transform"">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix>";
+			streamWriter.Write(fileContents);
+
+			AddBonesRecursively(index, hgol, null, -1, new Matrix4x4(), "");
+
+			fileContents = $@"
+      </node>";
+			streamWriter.Write(fileContents);
+		}
+	}
+	private void AddBonesRecursively(
+		int armatureNumber,
+		HGOL hgol, 
+		Bone parentBone, 
+		int parentBoneIndex,
+		Matrix4x4 accumulatedTransform, 
+		string indentation)
+	{
+		Matrix4x4 newTransform;
+		if (parentBone != null)
+		{
+			newTransform = accumulatedTransform;
+			newTransform = newTransform.Multiply(parentBone.transform3);
+			newTransform = newTransform.Multiply(parentBone.transform2);
+			newTransform = newTransform.Multiply(parentBone.transform1);
+		}
+		else
+		{
+			newTransform = accumulatedTransform;
+		}
+
+		string fileContents;
+		if (parentBone != null)
+		{
+			fileContents = $@"
+        {indentation}<node id=""Armature_{armatureNumber}_Bone_{parentBone.name}"" name=""{parentBone.name}"" sid=""Bone_{parentBone.name}"" type=""JOINT"">
+          {indentation}<matrix sid=""transform"">";
+			streamWriter.Write(fileContents);
+
+			for (int i = 0; i < 4; i++)
+			{
+				for (int j = 0; j < 4; j++)
+				{
+					streamWriter.Write(newTransform.m[i][j]);
+					streamWriter.Write(" ");
+				}
+			}
+
+			streamWriter.Write("</matrix>");
+		}
+
+		// Print children
+		bool hasChild = false;
+		for (int i = 0; i < hgol.Bones.Count; i++)
+		{
+			Bone aBone = hgol.Bones[i];
+			if (aBone.parent == parentBoneIndex)
+			{
+				hasChild = true;
+				// ColoredConsole.WriteLine($"            {indentation}Bone #{i}, parent {aBone.parent}");
+				AddBonesRecursively(armatureNumber, hgol, aBone, i, newTransform, indentation + "  ");
+			}
+		}
+
+		if (parentBone != null)
+		{
+			if (!hasChild)
+			{
+				fileContents = $@"
+          {indentation}<extra>
+            {indentation}<technique profile=""blender"">
+              {indentation}<connect sid=""connect"" type=""bool"">1</connect>
+              {indentation}<layer sid=""layer"" type=""string"">0</layer>
+              {indentation}<tip_x sid=""tip_x"" type=""float"">0</tip_x>
+              {indentation}<tip_y sid=""tip_y"" type=""float"">0</tip_y>
+              {indentation}<tip_z sid=""tip_z"" type=""float"">1</tip_z>
+            {indentation}</technique>
+          {indentation}</extra>
+        {indentation}</node>";
+				streamWriter.Write(fileContents);
+			}
+			else
+			{
+				fileContents = $@"
+          {indentation}<extra>
+            {indentation}<technique profile=""blender"">
+              {indentation}<layer sid=""layer"" type=""string"">0</layer>
+            {indentation}</technique>
+          {indentation}</extra>
+        {indentation}</node>";
+				streamWriter.Write(fileContents);
+			}
+		}
 	}
 
 	private void AddMeshesToScene()

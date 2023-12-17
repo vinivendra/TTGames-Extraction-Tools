@@ -8,6 +8,7 @@ namespace ExtractDx11MESH.MESHs;
 public class MESH04
 {
 	protected float[] lookUp;
+	protected float[] lookUpU;
 
 	public Dictionary<int, VertexList> Vertexlistsdictionary = new Dictionary<int, VertexList>();
 
@@ -38,6 +39,25 @@ public class MESH04
 				lookUp[255] = 1f;
 			}
 			return lookUp;
+		}
+	}
+
+	protected float[] LookUpU
+	{
+		get
+		{
+			if (lookUpU == null)
+			{
+				double num = 1.0 / 255.0;
+				lookUpU = new float[256];
+				lookUpU[0] = 0f;
+				for (int i = 1; i < 256; i++)
+				{
+					lookUpU[i] = (float)((double)lookUpU[i - 1] + num);
+				}
+				lookUpU[255] = 1f;
+			}
+			return lookUpU;
 		}
 	}
 
@@ -324,6 +344,8 @@ public class MESH04
 		Vertex vertex = new Vertex();
 		foreach (VertexDefinition vertexdefinition in vertexdefinitions)
 		{
+			ColoredConsole.WriteLine("{0:x8}           Def {1} {2}", iPos, vertexdefinition.VariableType.ToString(), vertexdefinition.Variable.ToString());
+
 			switch (vertexdefinition.Variable)
 			{
 			case VertexDefinition.VariableEnum.position:
@@ -341,12 +363,17 @@ public class MESH04
 			case VertexDefinition.VariableEnum.uvSet01:
 				vertex.UVSet0 = (Vector2)ReadVariableValue(vertexdefinition.VariableType);
 				break;
+			case VertexDefinition.VariableEnum.blendIndices0:
+				vertex.BlendIndices0 = (Byte4)ReadVariableValue(vertexdefinition.VariableType);
+				break;
+			case VertexDefinition.VariableEnum.blendWeight0:
+				vertex.BlendWeight0 = (Vector4)ReadVariableValue(vertexdefinition.VariableType);
+				ColoredConsole.WriteLine("{0:x8}           Blend weights {1} {2}", iPos, vertexdefinition.VariableType, vertex.BlendWeight0);
+				break;
 			case VertexDefinition.VariableEnum.tangent:
 			case VertexDefinition.VariableEnum.unknown6:
 			case VertexDefinition.VariableEnum.uvSet2:
 			case VertexDefinition.VariableEnum.unknown8:
-			case VertexDefinition.VariableEnum.blendIndices0:
-			case VertexDefinition.VariableEnum.blendWeight0:
 			case VertexDefinition.VariableEnum.unknown11:
 			case VertexDefinition.VariableEnum.lightDirSet:
 			case VertexDefinition.VariableEnum.lightColSet:
@@ -414,8 +441,14 @@ public class MESH04
 			return result3;
 		}
 		case VertexDefinition.VariableTypeEnum.vec4char:
+			Byte4 bytes = new Byte4();
+			bytes.a = fileData[iPos];
+			bytes.b = fileData[iPos + 1];
+			bytes.c = fileData[iPos + 2];
+			bytes.d = fileData[iPos + 3];
+			Byte4 result8 = bytes;
 			iPos += 4;
-			return 1;
+			return result8;
 		case VertexDefinition.VariableTypeEnum.vec4mini:
 		{
 			Vector4 vector = new Vector4();

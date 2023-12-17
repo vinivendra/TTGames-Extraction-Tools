@@ -29,7 +29,8 @@ public class VertexDefinition
 		vec4half,
 		vec4char,
 		vec4mini,
-		color4char
+		color4char,
+		uVec4mini
 	}
 
 	public VariableEnum Variable;

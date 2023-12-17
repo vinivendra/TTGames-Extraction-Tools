@@ -12,8 +12,6 @@ public class GSC2EB
 
 	public int version;
 
-	public MESH04 mesh;
-
 	public GSC2EB(byte[] fileData, int iPos)
 	{
 		this.fileData = fileData;
@@ -36,16 +34,31 @@ public class GSC2EB
 			ColoredConsole.WriteLine("{0:x8}   {1}", iPos, readString(numberofchars));
 			numberofchars = BigEndianBitConverter.ToInt16(fileData, iPos);
 			iPos += 2;
-			ColoredConsole.WriteLine("{0:x8}	 {1}", iPos, readString(numberofchars));
+			ColoredConsole.WriteLine("{0:x8}     {1}", iPos, readString(numberofchars));
 		}
 		iPos += 4;
 
 		// Create the mesh
-		mesh = new MESHC9(fileData, iPos);
+		MESH04 mesh = new MESHC9(fileData, iPos);
 		mesh.Read(ref referencecounter);
 
+		// Export the mesh to a file
+        ColoredConsole.WriteLine("Exporting Collada file...");
+
+        ColladaExporter colladaExporter = new ColladaExporter();
+        string path = directoryName + "\\" + filenameWithoutExtension + ".dae";
+        colladaExporter.StartFile(path);
+
+        foreach (Part part in mesh.Parts)
+        {
+            num++;
+            colladaExporter.AddMesh(mesh, part, num);
+        }
+
+        colladaExporter.EndFile(mesh.Parts.Count);
+
 		// Return the new reading position in the input file
-		return iPos;
+        return iPos;
 	}
 
 	protected string readString(int numberofchars)

@@ -157,16 +157,16 @@ public class MESH2E : MESH05
 			{
 				ColoredConsole.WriteWarn("New unknown Index");
 			}
-			int num3 = BigEndianBitConverter.ToInt32(fileData, iPos);
-			ColoredConsole.WriteLine("{0:x8}           Number of Indices: {1:x8}", iPos, num3);
+			int numberOfIndices = BigEndianBitConverter.ToInt32(fileData, iPos);
+			ColoredConsole.WriteLine("{0:x8}           Number of Indices: {1:x8}", iPos, numberOfIndices);
 			iPos += 4;
-			int num4 = BigEndianBitConverter.ToInt32(fileData, iPos);
-			ColoredConsole.WriteLine("{0:x8}           IndexSize 0x{1:x8}", iPos, num4);
+			int indexSize = BigEndianBitConverter.ToInt32(fileData, iPos);
+			ColoredConsole.WriteLine("{0:x8}           IndexSize 0x{1:x8}", iPos, indexSize);
 			iPos += 4;
 			List<int> list = new List<int>();
-			for (int i = 0; i < num3; i++)
+			for (int i = 0; i < numberOfIndices; i++)
 			{
-				switch (num4)
+				switch (indexSize)
 				{
 				case 2:
 					list.Add(BitConverter.ToUInt16(fileData, iPos));
@@ -261,12 +261,18 @@ public class MESH2E : MESH05
 			case VertexDefinition.VariableEnum.uvSet01:
 				vertex.UVSet0 = (Vector2)ReadVariableValue(vertexdefinition.VariableType);
 				break;
+			case VertexDefinition.VariableEnum.uvSet2:
+				vertex.UVSet1 = (Vector2)ReadVariableValue(vertexdefinition.VariableType);
+				break;
+			case VertexDefinition.VariableEnum.blendIndices0:
+				vertex.BlendIndices0 = (Byte4)ReadVariableValue(vertexdefinition.VariableType);
+				break;
+			case VertexDefinition.VariableEnum.blendWeight0:
+				vertex.BlendWeight0 = (Vector4)ReadVariableValue(VertexDefinition.VariableTypeEnum.uVec4mini);
+				break;
 			case VertexDefinition.VariableEnum.tangent:
 			case VertexDefinition.VariableEnum.unknown6:
-			case VertexDefinition.VariableEnum.uvSet2:
 			case VertexDefinition.VariableEnum.unknown8:
-			case VertexDefinition.VariableEnum.blendIndices0:
-			case VertexDefinition.VariableEnum.blendWeight0:
 			case VertexDefinition.VariableEnum.unknown11:
 			case VertexDefinition.VariableEnum.lightDirSet:
 			case VertexDefinition.VariableEnum.lightColSet:
@@ -335,8 +341,14 @@ public class MESH2E : MESH05
 			return result3;
 		}
 		case VertexDefinition.VariableTypeEnum.vec4char:
+			Byte4 bytes = new Byte4();
+			bytes.a = fileData[iPos];
+			bytes.b = fileData[iPos + 1];
+			bytes.c = fileData[iPos + 2];
+			bytes.d = fileData[iPos + 3];
+			Byte4 result8 = bytes;
 			iPos += 4;
-			return 1;
+			return result8;
 		case VertexDefinition.VariableTypeEnum.vec4mini:
 		{
 			Vector4 vector = new Vector4();
@@ -344,6 +356,17 @@ public class MESH2E : MESH05
 			vector.Y = base.LookUp[fileData[iPos + 1]];
 			vector.Z = base.LookUp[fileData[iPos + 2]];
 			vector.W = base.LookUp[fileData[iPos + 3]];
+			Vector4 result2 = vector;
+			iPos += 4;
+			return result2;
+		}
+		case VertexDefinition.VariableTypeEnum.uVec4mini:
+		{
+			Vector4 vector = new Vector4();
+			vector.X = base.LookUpU[fileData[iPos]];
+			vector.Y = base.LookUpU[fileData[iPos + 1]];
+			vector.Z = base.LookUpU[fileData[iPos + 2]];
+			vector.W = base.LookUpU[fileData[iPos + 3]];
 			Vector4 result2 = vector;
 			iPos += 4;
 			return result2;

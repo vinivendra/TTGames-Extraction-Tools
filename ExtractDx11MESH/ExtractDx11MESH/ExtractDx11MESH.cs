@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using ExtractDx11MESH.IVL5;
 using ExtractDx11MESH.MESHs;
 using ExtractDx11MESH.TXGHs;
 using ExtractHelper;
 using ExtractHelper.VariableTypes;
+using Microsoft.SqlServer.Server;
 
 namespace ExtractDx11MESH;
 
@@ -36,7 +38,7 @@ public class ExtractDx11MESH
 
 	private IVL501 ivl5;
 
-	private List<HGOL> hgols = new List<HGOL>();
+	private List<string> boneNames = new List<string>();
 
 	private bool extractMesh = true;
 
@@ -87,85 +89,85 @@ public class ExtractDx11MESH
 		}
 		else
 		{
+			readHGOL();
 			readNU20();
 			readMESH();
-			readHGOLs();
 		}
-		string path = directoryname + "\\" + filenamewithoutextension + ".dae";
-
-		ColoredConsole.WriteLineInfo($"Exporting Collada file {path}...");
-		ColladaExporter colladaExporter = new ColladaExporter();
-		colladaExporter.mesh = mesh;
-		colladaExporter.hgols = hgols;
-		colladaExporter.WriteFile(path);
-
 		ColoredConsole.WriteLineInfo(fullPath);
 	}
-	private void readHGOLs()
+
+	private void readHGOL()
 	{
-		while (true)
+		var pos = iPos;
+		// "LOGH" in ASCII ("HGOL" backwards)
+		while (pos + 3 < fileData.Length &&
+			(fileData[pos] != 76 || fileData[pos + 1] != 79 || fileData[pos + 2] != 71 || fileData[pos + 3] != 72))
 		{
-			HGOL hgol = ReadHGOL();
-			if (hgol != null)
+			pos++;
+		}
+		if (fileData[pos] == 76 || fileData[pos + 1] == 79 || fileData[pos + 2] == 71 || fileData[pos + 3] == 72)
+		{
+			ColoredConsole.WriteLine("{0:x8}   HGOL with bone data", pos);
+			// Skip the "LOGH" + a null terminator
+			pos += 5;
+
+			// Skip 10 bytes
+			pos += 10;
+
+			// Read the number of bones
+			int numberOfBones = fileData[pos];
+			ColoredConsole.WriteLine($"{pos:x8}   Number of bones: {numberOfBones}");
+
+			// Skip 3 bytes
+			pos += 3;
+
+			for (int i = 0; i < numberOfBones; i++)
 			{
-				this.hgols.Add(hgol);
+				int boneStartIndex = pos;
+				
+				string boneName = readString(ref pos);
+				if (boneName == "")
+				{
+					boneName = $"bone_{i + 1}";
+				}
+
+				boneNames.Add(boneName);
+				ColoredConsole.WriteLine($"{boneStartIndex:x8}       Bone {i + 1}: {boneName}");
+
+				// Skip a 4x4 matrix + 16 bytes
+				pos += 4 * 16 + 16;
+			}
+		}
+		else
+		{
+			ColoredConsole.WriteLineInfo("Nope");
+		}
+	}
+
+	private string readString(ref int pos)
+	{
+		string result = "";
+		while(pos < fileData.Length)
+		{
+			if (fileData[pos] == 0)
+			{
+				// Skip the null terminator
+				pos++;
+				return result;
 			}
 			else
 			{
-				break;
+				result += (char)fileData[pos];
+				pos++;
 			}
 		}
-
-		if (this.hgols.Count == 0)
-		{
-			ColoredConsole.WriteLine("No armature (HGOL)");
-		}
-	}
-
-	/// <summary>
-	///  Reads an HGOL section as an armature and its bones.
-	///  If no HGOL section is detected, doesn't change the iPos.
-	/// </summary>
-	/// <returns>
-	///  Returns the created HGOL if an HGOL section was read, null otherwise.
-	/// </returns>
-	private HGOL ReadHGOL()
-	{
-		int localIPos = iPos;
-
-		// Read the file until we find an "HGOL" string
-		while (localIPos + 3 < fileData.Length &&
-			(fileData[localIPos] != 76 ||
-			fileData[localIPos + 1] != 79 ||
-			fileData[localIPos + 2] != 71 ||
-			fileData[localIPos + 3] != 72))
-		{
-			localIPos++;
-		}
-		// If the file ended or if no string was found
-		if (localIPos + 3 >= fileData.Length ||
-			fileData[localIPos] != 76 ||
-			fileData[localIPos + 1] != 79 ||
-			fileData[localIPos + 2] != 71 ||
-			fileData[localIPos + 3] != 72)
-		{
-			return null;
-		}
-
-		// If we found a string at `localIPos`, move `iPos` to this string and start reading the HGOL
-		iPos = localIPos;
-
-		// Skip the "HGOL" string
-		iPos += 4;
-
-		HGOL hgol = new HGOL(fileData, iPos);
-		iPos = hgol.Read();
-
-		return hgol;
+		ColoredConsole.WriteLineInfo("Warning: EOF while reading bone name");
+		return "";
 	}
 
 	private void readNU20()
 	{
+		// "02UN" in ASCII ("NU20" backwards)
 		while (fileData[iPos] != 48 || fileData[iPos + 1] != 50 || fileData[iPos + 2] != 85 || fileData[iPos + 3] != 78)
 		{
 			iPos++;
@@ -224,7 +226,6 @@ public class ExtractDx11MESH
 			iPos += 4;
 			GSC2EB gSC2EB = new GSC2EB(fileData, iPos);
 			iPos = gSC2EB.Read(ref referencecounter, directoryname, filenamewithoutextension);
-			this.mesh = gSC2EB.mesh;
 		}
 	}
 
@@ -273,9 +274,61 @@ public class ExtractDx11MESH
 			default:
 				throw new NotSupportedException($"MESH Version {BigEndianBitConverter.ToInt32(fileData, iPos):x2}");
 			}
-
 			iPos = mesh.Read(ref referencecounter);
-			return;
+			int num = 0;
+			bool flag = true;
+			{
+                ColoredConsole.WriteLine("Exporting Collada file...");
+
+                ColladaExporter colladaExporter = new ColladaExporter();
+				colladaExporter.boneNames = boneNames;
+
+				string path = directoryname + "\\" + filenamewithoutextension + ".dae";
+                colladaExporter.StartFile(path);
+
+				ColoredConsole.WriteLine($"	Output file path: {path}");
+
+				num = 0;
+				foreach (Part part in mesh.Parts)
+				{
+					flag = false;
+					num++;
+					colladaExporter.AddMesh(mesh, part, num);
+				}
+
+				colladaExporter.EndGeometriesAndStartSkin();
+
+				num = 0;
+				foreach (Part part in mesh.Parts)
+				{
+					flag = false;
+					num++;
+					colladaExporter.AddSkins(mesh, part, num);
+				}
+
+				colladaExporter.EndSkinAndStartSceneForArmatures();
+
+				num = 0;
+				foreach (Part part in mesh.Parts)
+				{
+					flag = false;
+					num++;
+					colladaExporter.AddScenesForArmatures(mesh, part, num);
+				}
+
+				colladaExporter.EndArmaturesAndStartSceneForObjects();
+				num = 0;
+				foreach (Part part in mesh.Parts)
+				{
+					flag = false;
+					num++;
+					colladaExporter.AddScenesForObjects(mesh, part, num);
+				}
+
+				colladaExporter.EndFile(mesh.Parts.Count);
+				
+                return;
+			}
 		}
 		ColoredConsole.WriteLine("No MESH");
 	}
